@@ -87,20 +87,60 @@ function handleFormSubmit(event) {
 
 // Scroll Animation for Feature Cards
 function animateOnScroll() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('animate');
-            }
+    // Check if browser supports IntersectionObserver
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Add a slight delay for staggered animation effect
+                    const delay = Array.from(featureCards).indexOf(entry.target) * 150;
+                    setTimeout(() => {
+                        entry.target.classList.add('animate');
+                        // Add fade-in class for additional effects if needed
+                        entry.target.classList.add('fade-in');
+                        
+                        // Track animation event for analytics
+                        trackEvent('feature_card_animated', { 
+                            cardIndex: Array.from(featureCards).indexOf(entry.target) 
+                        });
+                    }, delay);
+                    
+                    // Stop observing once animated to prevent re-triggering
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.2, // Trigger when 20% of the element is visible
+            rootMargin: '0px 0px -50px 0px' // Trigger slightly before element comes into view
         });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
 
-    featureCards.forEach(card => {
-        observer.observe(card);
-    });
+        featureCards.forEach(card => {
+            observer.observe(card);
+        });
+    } else {
+        // Fallback for older browsers - use scroll event
+        const handleScroll = debounce(() => {
+            featureCards.forEach(card => {
+                if (!card.classList.contains('animate')) {
+                    const rect = card.getBoundingClientRect();
+                    const windowHeight = window.innerHeight;
+                    
+                    // Check if element is in viewport
+                    if (rect.top < windowHeight * 0.8 && rect.bottom > 0) {
+                        const delay = Array.from(featureCards).indexOf(card) * 150;
+                        setTimeout(() => {
+                            card.classList.add('animate');
+                            card.classList.add('fade-in');
+                        }, delay);
+                    }
+                }
+            });
+        }, 100);
+        
+        window.addEventListener('scroll', handleScroll);
+        // Also check on page load
+        handleScroll();
+    }
 }
 
 // Smooth Scrolling for Navigation
